@@ -3,11 +3,10 @@
 import { useMemo } from "react";
 import {
   MapContainer,
-  TileLayer,
   GeoJSON,
-  Tooltip as LeafletTooltip,
+  Marker,
 } from "react-leaflet";
-import type { Layer, PathOptions } from "leaflet";
+import L, { type Layer, type PathOptions } from "leaflet";
 import type { Feature } from "geojson";
 import {
   JORDAN_GOVERNORATES_GEOJSON,
@@ -17,11 +16,8 @@ import { GOVERNORATES, type GovernorateId } from "@/data/governorates";
 import { useLanguage } from "./LanguageContext";
 
 export interface MapLayerSpec {
-  /** color per governorate */
   fillById: Record<GovernorateId, string>;
-  /** human-readable value per governorate for tooltips */
   valueById?: Partial<Record<GovernorateId, string>>;
-  /** small secondary label per governorate */
   detailById?: Partial<Record<GovernorateId, string>>;
 }
 
@@ -30,28 +26,34 @@ export interface JordanMapInnerProps {
   selectedId?: GovernorateId;
   onSelect?: (id: GovernorateId) => void;
   height?: number | string;
+  showLabels?: boolean;
 }
 
-const JORDAN_CENTER: [number, number] = [31.4, 36.4];
-const JORDAN_ZOOM = 7;
+// Real Jordan bounding box
+const JORDAN_BOUNDS: L.LatLngBoundsExpression = [
+  [29.18, 34.95],
+  [33.38, 39.30],
+];
 
 export default function JordanMapInner({
   layer,
   selectedId,
   onSelect,
   height = "100%",
+  showLabels = true,
 }: JordanMapInnerProps) {
   const { lang } = useLanguage();
 
   const styleFn = (feature?: Feature): PathOptions => {
     const id = (feature?.properties as GovFeature["properties"] | undefined)?.id;
-    const fill = id ? layer.fillById[id] ?? "#E1E7EF" : "#E1E7EF";
+    const fill = id ? layer.fillById[id] ?? "#E5EAF2" : "#E5EAF2";
     const isSelected = id && selectedId === id;
     return {
       fillColor: fill,
-      fillOpacity: 0.78,
+      fillOpacity: isSelected ? 0.92 : 0.82,
       color: isSelected ? "#0A2540" : "#FFFFFF",
-      weight: isSelected ? 2.4 : 1.2,
+      weight: isSelected ? 2.2 : 1.1,
+      lineJoin: "round",
     };
   };
 
@@ -61,18 +63,33 @@ export default function JordanMapInner({
     const val = layer.valueById?.[props.id];
     const detail = layer.detailById?.[props.id];
     const html = `
-      <div style="min-width:140px">
-        <div style="font-weight:600;color:#0A2540">${name}</div>
-        ${val ? `<div style="margin-top:2px;color:#475467">${val}</div>` : ""}
+      <div style="min-width:140px;font-family:inherit">
+        <div style="font-weight:600;color:#0A2540;font-size:13px">${name}</div>
+        ${val ? `<div style="margin-top:2px;color:#475467;font-size:12px">${val}</div>` : ""}
         ${detail ? `<div style="margin-top:1px;color:#98A2B3;font-size:11px">${detail}</div>` : ""}
       </div>`;
-    lyr.bindTooltip(html, { sticky: true, direction: "top", opacity: 1 });
-    if (onSelect) {
-      lyr.on("click", () => onSelect(props.id));
-    }
+    lyr.bindTooltip(html, { sticky: true, direction: "top", opacity: 1, className: "sehha-tip" });
+
+    // Hover effect
+    lyr.on("mouseover", (e) => {
+      const target = e.target as L.Path;
+      target.setStyle({ fillOpacity: 0.94, weight: 1.8 });
+      target.bringToFront();
+    });
+    lyr.on("mouseout", (e) => {
+      const target = e.target as L.Path;
+      const id = props.id;
+      const isSel = id === selectedId;
+      target.setStyle({
+        fillOpacity: isSel ? 0.92 : 0.82,
+        weight: isSel ? 2.2 : 1.1,
+      });
+    });
+
+    if (onSelect) lyr.on("click", () => onSelect(props.id));
   };
 
-  // re-render trigger when layer changes
+  // re-render trigger when layer / selection / language changes
   const geoKey = useMemo(
     () =>
       Object.values(layer.fillById).join("|") +
@@ -83,18 +100,36 @@ export default function JordanMapInner({
     [layer, selectedId, lang]
   );
 
+  // Build label markers
+  const labelMarkers = useMemo(() => {
+    if (!showLabels) return [];
+    return GOVERNORATES.map((g) => {
+      const text = lang === "ar" ? g.nameAr : g.nameEn;
+      const icon = L.divIcon({
+        className: "sehha-label",
+        html: `<span class="sehha-label-pill">${text}</span>`,
+        iconSize: [80, 18],
+        iconAnchor: [40, 9],
+      });
+      return { id: g.id, lat: g.lat, lon: g.lon, icon };
+    });
+  }, [lang, showLabels]);
+
   return (
-    <div style={{ width: "100%", height }}>
+    <div style={{ width: "100%", height, position: "relative" }}>
       <MapContainer
-        center={JORDAN_CENTER}
-        zoom={JORDAN_ZOOM}
+        bounds={JORDAN_BOUNDS}
+        boundsOptions={{ padding: [12, 12] }}
         scrollWheelZoom={false}
-        style={{ width: "100%", height: "100%", borderRadius: 6 }}
+        zoomControl={true}
+        attributionControl={false}
+        style={{
+          width: "100%",
+          height: "100%",
+          borderRadius: 6,
+          background: "#F1F4F8",
+        }}
       >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-        />
         <GeoJSON
           key={geoKey}
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -102,56 +137,16 @@ export default function JordanMapInner({
           style={styleFn}
           onEachFeature={onEach}
         />
-        {/* Floating labels (governorate names) */}
-        {GOVERNORATES.map((g) => (
-          <LabelMarker key={g.id} lat={g.lat} lon={g.lon} label={lang === "ar" ? g.nameAr : g.nameEn} />
+        {labelMarkers.map((m) => (
+          <Marker
+            key={m.id}
+            position={[m.lat, m.lon]}
+            icon={m.icon}
+            interactive={false}
+            keyboard={false}
+          />
         ))}
       </MapContainer>
     </div>
-  );
-}
-
-import { CircleMarker } from "react-leaflet";
-
-function LabelMarker({
-  lat,
-  lon,
-  label,
-}: {
-  lat: number;
-  lon: number;
-  label: string;
-}) {
-  return (
-    <CircleMarker
-      center={[lat, lon]}
-      radius={2}
-      pathOptions={{
-        color: "#0A2540",
-        fillColor: "#0A2540",
-        fillOpacity: 0.9,
-        weight: 1,
-      }}
-    >
-      <LeafletTooltip
-        permanent
-        direction="top"
-        opacity={0.92}
-        className="!bg-transparent !border-0 !shadow-none"
-      >
-        <span
-          style={{
-            color: "#0A2540",
-            fontSize: 11,
-            fontWeight: 500,
-            background: "rgba(255,255,255,0.85)",
-            padding: "1px 4px",
-            borderRadius: 3,
-          }}
-        >
-          {label}
-        </span>
-      </LeafletTooltip>
-    </CircleMarker>
   );
 }

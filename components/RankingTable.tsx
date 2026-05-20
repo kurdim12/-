@@ -17,6 +17,7 @@ interface RankingTableProps<T> {
   columns: RankingColumn<T>[];
   caption?: string;
   rankColumnHeader?: string;
+  highlightTop?: number;
 }
 
 export function RankingTable<T>({
@@ -25,31 +26,40 @@ export function RankingTable<T>({
   columns,
   caption,
   rankColumnHeader,
+  highlightTop = 3,
 }: RankingTableProps<T>) {
   return (
-    <div className="overflow-hidden rounded-lg border border-border bg-bg-secondary">
+    <div className="overflow-hidden rounded-xl border border-border bg-bg-secondary">
       {title && (
-        <div className="border-b border-border px-4 py-3">
-          <h3 className="text-sm font-semibold text-text-primary">{title}</h3>
-          {caption && (
-            <p className="mt-1 text-xs text-text-muted">{caption}</p>
-          )}
+        <div className="flex items-baseline justify-between border-b border-border px-5 py-3.5">
+          <div>
+            <h3 className="text-sm font-semibold text-text-primary">{title}</h3>
+            {caption && (
+              <p className="mt-0.5 text-xs text-text-muted">{caption}</p>
+            )}
+          </div>
+          <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+            {rows.length} · {rankColumnHeader || ""}
+          </span>
         </div>
       )}
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
-          <thead className="bg-bg-tertiary text-xs uppercase tracking-wide text-text-muted">
+          <thead className="bg-bg-tertiary">
             <tr>
               {rankColumnHeader !== undefined && (
-                <th className="px-4 py-2 text-start font-medium" style={{ width: 64 }}>
-                  {rankColumnHeader}
+                <th
+                  className="px-5 py-2.5 text-start text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted"
+                  style={{ width: 56 }}
+                >
+                  #
                 </th>
               )}
               {columns.map((c) => (
                 <th
                   key={c.key}
                   className={cn(
-                    "px-4 py-2 font-medium",
+                    "px-4 py-2.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted",
                     c.align === "end"
                       ? "text-end"
                       : c.align === "center"
@@ -65,17 +75,29 @@ export function RankingTable<T>({
           </thead>
           <tbody className="divide-y divide-border">
             {rows.map((row, i) => (
-              <tr key={i} className="hover:bg-bg-tertiary">
+              <tr
+                key={i}
+                className="transition hover:bg-bg-tertiary/60"
+              >
                 {rankColumnHeader !== undefined && (
-                  <td className="px-4 py-2.5 text-start tabular text-text-muted">
-                    {i + 1}
+                  <td className="px-5 py-3 text-start">
+                    <span
+                      className={cn(
+                        "inline-flex h-6 w-6 items-center justify-center rounded-md text-[11px] font-semibold tabular",
+                        i < highlightTop
+                          ? "bg-accent-alert/10 text-accent-alert"
+                          : "bg-bg-tertiary text-text-muted"
+                      )}
+                    >
+                      {i + 1}
+                    </span>
                   </td>
                 )}
                 {columns.map((c) => (
                   <td
                     key={c.key}
                     className={cn(
-                      "px-4 py-2.5",
+                      "px-4 py-3",
                       c.align === "end"
                         ? "text-end tabular"
                         : c.align === "center"

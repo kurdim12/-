@@ -9,6 +9,7 @@ import { Legend } from "@/components/Legend";
 import { RankingTable, type RankingColumn } from "@/components/RankingTable";
 import { IndicatorBadge } from "@/components/IndicatorBadge";
 import { InfoTooltip } from "@/components/Tooltip";
+import { FilterSelect } from "@/components/FilterSelect";
 import { useLanguage } from "@/components/LanguageContext";
 import {
   SPECIALTIES,
@@ -58,11 +59,15 @@ export default function SpecialistsPage() {
   }, [rows, t, locale]);
 
   const ranked = useMemo(() => {
-    const order = { critical: 0, underserved: 1, adequate: 2, wellServed: 3 } as const;
+    const order = {
+      critical: 0,
+      underserved: 1,
+      adequate: 2,
+      wellServed: 3,
+    } as const;
     return [...rows].sort(
       (a, b) =>
-        order[a.status] - order[b.status] ||
-        b.travelBurden - a.travelBurden
+        order[a.status] - order[b.status] || b.travelBurden - a.travelBurden
     );
   }, [rows]);
 
@@ -89,14 +94,24 @@ export default function SpecialistsPage() {
       key: "per100k",
       header: t.specialists.table.per100k,
       align: "end",
-      render: (r) => formatDecimal(r.per100k, 1, locale),
+      render: (r) => (
+        <span className="font-semibold">
+          {formatDecimal(r.per100k, 1, locale)}
+        </span>
+      ),
     },
     {
       key: "burden",
       header: t.specialists.table.travelBurden,
       align: "end",
       render: (r) => (
-        <span className={r.travelBurden >= 0.6 ? "text-accent-alert" : ""}>
+        <span
+          className={
+            r.travelBurden >= 0.6
+              ? "font-semibold text-accent-alert"
+              : "text-text-secondary"
+          }
+        >
           {formatPercent(r.travelBurden, locale)}
         </span>
       ),
@@ -128,29 +143,23 @@ export default function SpecialistsPage() {
   return (
     <div>
       <PageHeader
+        eyebrow={t.nav.specialists}
         title={t.specialists.title}
         subtitle={t.specialists.subtitle}
         actions={
-          <div className="flex items-center gap-2">
-            <label className="text-xs font-medium text-text-muted">
-              {t.specialists.specialty}
-            </label>
-            <select
-              value={specialty}
-              onChange={(e) => setSpecialty(e.target.value as SpecialtyId)}
-              className="rounded-md border border-border bg-bg-secondary px-2.5 py-1.5 text-sm text-text-primary"
-            >
-              {SPECIALTIES.map((s) => (
-                <option key={s} value={s}>
-                  {t.specialists.specialties[s]}
-                </option>
-              ))}
-            </select>
-          </div>
+          <FilterSelect
+            label={t.specialists.specialty}
+            value={specialty}
+            onChange={setSpecialty}
+            options={SPECIALTIES.map((s) => ({
+              value: s,
+              label: t.specialists.specialties[s],
+            }))}
+          />
         }
       />
 
-      <div className="grid gap-4 px-4 py-4 md:grid-cols-3 md:px-6">
+      <div className="grid gap-4 px-4 py-5 md:grid-cols-3 md:px-6">
         <KPICard
           label={t.specialists.kpis.total}
           value={formatNumber(total, locale)}
@@ -169,15 +178,20 @@ export default function SpecialistsPage() {
         />
       </div>
 
-      <div className="grid gap-4 px-4 pb-4 md:px-6 lg:grid-cols-[1fr_280px]">
-        <div className="overflow-hidden rounded-lg border border-border bg-bg-secondary">
-          <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
-            <h2 className="text-sm font-semibold text-text-primary">
-              {t.specialists.specialties[specialty]}
-            </h2>
+      <div className="grid gap-4 px-4 pb-5 md:px-6 lg:grid-cols-[1fr_280px]">
+        <div className="overflow-hidden rounded-xl border border-border bg-bg-secondary">
+          <div className="flex items-center justify-between border-b border-border px-5 py-3">
+            <div>
+              <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                {t.home.layers.specialists}
+              </div>
+              <h2 className="mt-0.5 text-sm font-semibold text-text-primary">
+                {t.specialists.specialties[specialty]}
+              </h2>
+            </div>
             <InfoTooltip text={t.specialists.tooltips.per100k} />
           </div>
-          <div className="h-[460px]">
+          <div className="h-[480px]">
             <JordanMap layer={{ fillById, valueById, detailById }} />
           </div>
         </div>
@@ -192,7 +206,7 @@ export default function SpecialistsPage() {
         />
       </div>
 
-      <div className="px-4 pb-6 md:px-6">
+      <div className="px-4 pb-8 md:px-6">
         <RankingTable
           title={t.specialists.table.title}
           rows={ranked}

@@ -19,7 +19,12 @@ import {
 } from "@/data/capacity";
 import { GOVERNORATES, type GovernorateId } from "@/data/governorates";
 import { capacityColor } from "@/lib/classifiers";
-import { formatDecimal, formatNumber, formatPercent, localeFor } from "@/lib/utils";
+import {
+  formatDecimal,
+  formatNumber,
+  formatPercent,
+  localeFor,
+} from "@/lib/utils";
 
 export default function CapacityPage() {
   const { t, lang } = useLanguage();
@@ -54,7 +59,6 @@ export default function CapacityPage() {
     return map as Record<GovernorateId, string>;
   }, [locale, t]);
 
-  // Rank: under-capacity first, then by lowest beds-per-1k
   const ranked = useMemo(() => {
     const order = { under: 0, balanced: 1, over: 2 } as const;
     return [...CAPACITY].sort(
@@ -81,7 +85,11 @@ export default function CapacityPage() {
       key: "per1k",
       header: t.capacity.table.per1k,
       align: "end",
-      render: (r) => formatDecimal(r.bedsPer1k, 1, locale),
+      render: (r) => (
+        <span className="font-semibold">
+          {formatDecimal(r.bedsPer1k, 1, locale)}
+        </span>
+      ),
     },
     {
       key: "occupancy",
@@ -94,7 +102,13 @@ export default function CapacityPage() {
       header: t.capacity.table.projectedDemand,
       align: "end",
       render: (r) => (
-        <span className={r.projectedDemand12mo > 0.1 ? "text-accent-alert" : ""}>
+        <span
+          className={
+            r.projectedDemand12mo > 0.1
+              ? "font-semibold text-accent-alert"
+              : "text-text-secondary"
+          }
+        >
           +{formatPercent(r.projectedDemand12mo, locale)}
         </span>
       ),
@@ -119,14 +133,18 @@ export default function CapacityPage() {
 
   return (
     <div>
-      <PageHeader title={t.capacity.title} subtitle={t.capacity.subtitle} />
+      <PageHeader
+        eyebrow={t.nav.capacity}
+        title={t.capacity.title}
+        subtitle={t.capacity.subtitle}
+      />
 
-      <div className="grid gap-4 px-4 py-4 md:grid-cols-3 md:px-6">
+      <div className="grid gap-4 px-4 py-5 md:grid-cols-3 md:px-6">
         <KPICard
           label={t.capacity.kpis.bedsPer1k}
           value={formatDecimal(AVG_BEDS_PER_1K, 2, locale)}
           icon={<Hospital className="h-5 w-5" />}
-          hint={`WHO ≈ 3.0`}
+          hint="WHO ≈ 3.0"
         />
         <KPICard
           label={t.capacity.kpis.occupancy}
@@ -142,15 +160,20 @@ export default function CapacityPage() {
         />
       </div>
 
-      <div className="grid gap-4 px-4 pb-4 md:px-6 lg:grid-cols-[1fr_280px]">
-        <div className="overflow-hidden rounded-lg border border-border bg-bg-secondary">
-          <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
-            <h2 className="text-sm font-semibold text-text-primary">
-              {t.capacity.title}
-            </h2>
+      <div className="grid gap-4 px-4 pb-5 md:px-6 lg:grid-cols-[1fr_280px]">
+        <div className="overflow-hidden rounded-xl border border-border bg-bg-secondary">
+          <div className="flex items-center justify-between border-b border-border px-5 py-3">
+            <div>
+              <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                {t.home.layers.capacity}
+              </div>
+              <h2 className="mt-0.5 text-sm font-semibold text-text-primary">
+                {t.capacity.table.per1k}
+              </h2>
+            </div>
             <InfoTooltip text={t.capacity.tooltips.bedsPer1k} />
           </div>
-          <div className="h-[460px]">
+          <div className="h-[480px]">
             <JordanMap layer={{ fillById, valueById, detailById }} />
           </div>
         </div>
@@ -164,7 +187,7 @@ export default function CapacityPage() {
         />
       </div>
 
-      <div className="px-4 pb-6 md:px-6">
+      <div className="px-4 pb-8 md:px-6">
         <RankingTable
           title={t.capacity.table.title}
           rows={ranked}
