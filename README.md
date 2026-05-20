@@ -39,18 +39,39 @@ Open <http://localhost:3000>.
 
 ## Build & deploy to Cloudflare Pages
 
+The app builds as a fully static export (`next.config.mjs` has `output: "export"`), so it deploys to Cloudflare Pages with **no edge runtime, no adapter, no surprises**.
+
+### Option A — Deploy from your machine (fastest)
+
 ```bash
-# Build the Next.js app + the Cloudflare Pages adapter output
-npm run pages:build
-
-# Preview locally
-npm run pages:preview
-
-# Deploy
-npm run pages:deploy
+npm install --legacy-peer-deps
+npm run build           # produces out/
+npm run pages:deploy    # ships out/ to Cloudflare Pages
 ```
 
-This produces `.vercel/output/static/` and ships it to Cloudflare Pages under the project name `sehha-gis`.
+### Option B — Connect the GitHub repo to Cloudflare Pages
+
+In the Cloudflare dashboard, when creating the Pages project, set:
+
+| Field                  | Value                                              |
+|------------------------|----------------------------------------------------|
+| Framework preset       | **None** (don't pick Next.js — we use static export) |
+| Build command          | `npm install --legacy-peer-deps && npm run build`  |
+| Build output directory | `out`                                              |
+| Node version (env var) | `NODE_VERSION=22`                                  |
+
+Pages will then build on every push to the connected branch.
+
+> Note: `wrangler.toml` already declares `pages_build_output_dir = "out"`, but the **build command itself must be set in the Pages dashboard** — Cloudflare Pages doesn't read build commands from `wrangler.toml`.
+
+### Local preview of the production build
+
+```bash
+npm run build
+npm run start        # serves out/ on http://localhost:3000
+# or:
+npm run pages:preview
+```
 
 ## Project layout
 

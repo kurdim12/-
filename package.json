@@ -5,11 +5,10 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "npx serve out -l 3000",
     "lint": "next lint",
-    "pages:build": "npx @cloudflare/next-on-pages",
-    "pages:preview": "npx wrangler pages dev .vercel/output/static",
-    "pages:deploy": "npx wrangler pages deploy .vercel/output/static --project-name=sehha-gis"
+    "pages:preview": "npx wrangler pages dev out",
+    "pages:deploy": "npx wrangler pages deploy out --project-name=sehha-gis"
   },
   "dependencies": {
     "next": "14.2.15",
