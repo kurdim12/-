@@ -35,6 +35,8 @@ npm install
 npm run dev
 ```
 
+(`.npmrc` sets `legacy-peer-deps=true` so installs work cleanly across the Leaflet / React-Leaflet peer-range mismatch.)
+
 Open <http://localhost:3000>.
 
 ## Build & deploy to Cloudflare Pages
@@ -44,7 +46,7 @@ The app builds as a fully static export (`next.config.mjs` has `output: "export"
 ### Option A — Deploy from your machine (fastest)
 
 ```bash
-npm install --legacy-peer-deps
+npm install
 npm run build           # produces out/
 npm run pages:deploy    # ships out/ to Cloudflare Pages
 ```
@@ -56,7 +58,7 @@ In the Cloudflare dashboard, when creating the Pages project, set:
 | Field                  | Value                                              |
 |------------------------|----------------------------------------------------|
 | Framework preset       | **None** (don't pick Next.js — we use static export) |
-| Build command          | `npm install --legacy-peer-deps && npm run build`  |
+| Build command          | `npm run build`                                    |
 | Build output directory | `out`                                              |
 | Node version (env var) | `NODE_VERSION=22`                                  |
 
